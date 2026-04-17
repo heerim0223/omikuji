@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>御神籤 · 오미쿠지</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700;900&family=Shippori+Mincho:wght@400;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --ink: #0f0f0f;
+      --paper: #f9f8f5;
+      --smoke: #e8e6e1;
+      --ash: #9a9690;
+      --ghost: #c8c5be;
+    }
+
+    body {
+      font-family: 'Noto Serif JP', serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      touch-action: none;
+    }
+
+    body.blur {
+      overflow: hidden;
+    }
+
+    body.blur main,
+    body.blur header,
+    body.blur footer {
+      filter: blur(6px);
+      transition: filter 0.4s ease;
+    }
+
+    header {
+      width: 100%;
+      padding: 3rem 2rem 2rem;
+      text-align: center;
+      border-bottom: 1px solid var(--smoke);
+    }
+
+    .site-title {
+      font-family: 'Shippori Mincho', serif;
+      font-size: clamp(1.6rem, 5vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: 0.6em;
+      color: var(--ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .site-subtitle {
+      font-size: 0.72rem;
+      letter-spacing: 0.35em;
+      color: var(--ash);
+      text-transform: uppercase;
+    }
+
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 480px;
+      padding: 3rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .instruction {
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
+      color: var(--ash);
+      margin-bottom: 3.5rem;
+      text-align: center;
+      transition: opacity 0.4s;
+    }
+
+    .canister-wrap {
+      position: relative;
+      width: 120px;
+      height: 180px;
+      cursor: pointer;
+      margin-bottom: 3rem;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .canister-wrap:hover .canister-svg {
+      transform: translateY(-3px);
+    }
+
+    .omikuji-stick {
+      position: absolute;
+      left: 50%;
+      bottom: 150px;
+      width: 6px;
+      height: 0;
+      background: #fff;
+      border: 1px solid #000;
+      transform: translateX(-50%);
+      opacity: 0;
+      z-index: 2;
+    }
+
+    .omikuji-stick.show {
+      animation: drawStick 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes drawStick {
+      0% {
+        height: 0;
+        opacity: 0;
+      }
+
+      30% {
+        opacity: 1;
+      }
+
+      100% {
+        height: 30px;
+        opacity: 1;
+      }
+    }
+
+    .canister-svg {
+      transition: transform 0.3s ease;
+      display: block;
+    }
+
+    .canister-svg.shake {
+      animation: wobble 0.55s ease-in-out;
+    }
+
+    @keyframes wobble {
+
+      0%,
+      100% {
+        transform: rotate(0deg) translateY(0);
+      }
+
+      15% {
+        transform: rotate(-14deg) translateY(-6px);
+      }
+
+      30% {
+        transform: rotate(16deg) translateY(-12px);
+      }
+
+      45% {
+        transform: rotate(-11deg) translateY(-6px);
+      }
+
+      60% {
+        transform: rotate(13deg) translateY(-9px);
+      }
+
+      75% {
+        transform: rotate(-7deg) translateY(-3px);
+      }
+
+      90% {
+        transform: rotate(4deg);
+      }
+    }
+
+    .draw-btn {
+      font-family: 'Shippori Mincho', serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.4em;
+      color: var(--ink);
+      background: transparent;
+      border: 1px solid var(--ink);
+      padding: 0.9rem 3rem;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      margin-bottom: 3.5rem;
+    }
+
+    .draw-btn:hover {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .draw-btn:active {
+      opacity: 0.7;
+    }
+
+    .draw-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .draw-btn:disabled:hover {
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .scroll-hint {
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      color: var(--ash);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.4s ease;
+      margin-bottom: 1.5rem;
+    }
+
+    .scroll-hint.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .result-wrap {
+      position: fixed;
+      top: 80%;
+      left: 50%;
+      width: min(100%, 480px);
+      max-width: 480px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 1rem;
+      transform: translate(-50%, 120px);
+      opacity: 0;
+      transition: transform 0.6s ease, opacity 0.6s ease;
+      z-index: 20;
+    }
+
+    .result-wrap.visible {
+      display: flex;
+      transform: translate(-50%, 20px);
+      opacity: 1;
+    }
+
+    .result-wrap.focused {
+      top: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 1;
+    }
+
+    @keyframes slideUp {
+      0% {
+        transform: translateY(120px);
+        opacity: 0;
+      }
+
+      60% {
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .slip-outer {
+      width: 200px;
+      position: relative;
+      margin-bottom: 2.5rem;
+      animation: float 4s ease-in-out infinite;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0) rotate(-0.5deg);
+      }
+
+      50% {
+        transform: translateY(-10px) rotate(0.5deg);
+      }
+    }
+
+    .slip-paper {
+      width: 100%;
+      background: #fff;
+      border: 1px solid var(--ink);
+      padding: 2rem 1.25rem 2.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .slip-paper::before {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border: 0.5px solid var(--ghost);
+      pointer-events: none;
+    }
+
+    .slip-paper.dark-slip {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: var(--paper);
+    }
+
+    .slip-paper.dark-slip::before {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .slip-paper.dark-slip .slip-divider {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .slip-paper.dark-slip .section-label {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .slip-paper.dark-slip .section-val {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .slip-paper.dark-slip .fortune-poem {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .rank-jp {
+      font-family: 'Shippori Mincho', serif;
+      font-size: 4rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+      letter-spacing: 0.05em;
+    }
+
+    .rank-kr {
+      font-size: 0.68rem;
+      letter-spacing: 0.4em;
+      opacity: 0.45;
+      margin-bottom: 1rem;
+    }
+
+    .slip-divider {
+      width: 60%;
+      height: 1px;
+      background: var(--smoke);
+      margin: 0.75rem 0;
+    }
+
+    .fortune-poem {
+      font-size: 0.65rem;
+      line-height: 2;
+      text-align: center;
+      letter-spacing: 0.08em;
+      color: var(--ash);
+      white-space: pre-line;
+      margin-bottom: 0.25rem;
+    }
+
+    .fortune-sections {
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+
+    .fortune-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0.3rem 0;
+      border-bottom: 0.5px solid var(--smoke);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+    }
+
+    .fortune-section:last-child {
+      border-bottom: none;
+    }
+
+    .section-label {
+      color: var(--ash);
+    }
+
+    .section-val {
+      font-weight: 700;
+    }
+
+    .result-desc {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .result-meaning {
+      font-size: 0.8rem;
+      line-height: 1.9;
+      color: var(--ash);
+      letter-spacing: 0.05em;
+      white-space: pre-line;
+    }
+
+    .result-meaning strong {
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .rank-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 2.5rem;
+      align-items: center;
+    }
+
+    .rank-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      border: 1px solid var(--ghost);
+      background: transparent;
+      transition: background 0.3s, border-color 0.3s;
+    }
+
+    .rank-dot.active {
+      background: var(--ink);
+      border-color: var(--ink);
+    }
+
+    .again-btn {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.3em;
+      color: var(--ash);
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      padding: 0.5rem;
+      transition: color 0.2s;
+    }
+
+    .again-btn:hover {
+      color: var(--ink);
+    }
+
+    footer {
+      padding: 2rem;
+      text-align: center;
+      border-top: 1px solid var(--smoke);
+      width: 100%;
+    }
+
+    .footer-text {
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      color: var(--ghost);
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="site-title">御神籤</div>
+    <div class="site-subtitle">· Omikuji ·</div>
+  </header>
+
+  <main>
+    <p class="instruction" id="instrText">마음속으로 소원을 빌며 통을 흔들어 주세요</p>
+
+    <div class="canister-wrap" id="canisterWrap" onclick="shakeCanister()">
+      <div class="omikuji-stick" id="omikujiStick"></div>
+      <svg class="canister-svg" id="canisterSvg" viewBox="0 0 120 180" width="120" height="180"
+        xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#2a2a2a" />
+            <stop offset="40%" stop-color="#1a1a1a" />
+            <stop offset="100%" stop-color="#0a0a0a" />
+          </linearGradient>
+        </defs>
+        <!-- shadow -->
+        <ellipse cx="60" cy="175" rx="30" ry="4" fill="#c8c5be" opacity="0.6" />
+        <!-- body -->
+        <rect x="28" y="30" width="64" height="140" rx="4" fill="url(#cg)" />
+        <!-- light sheen -->
+        <rect x="29" y="30" width="10" height="140" rx="2" fill="rgba(255,255,255,0.04)" />
+        <!-- top ellipse -->
+        <ellipse cx="60" cy="30" rx="32" ry="9" fill="#1a1a1a" />
+        <ellipse cx="60" cy="30" rx="22" ry="6" fill="#111" />
+        <ellipse cx="60" cy="30" rx="8" ry="3" fill="#0a0a0a" />
+        <!-- opening -->
+        <ellipse cx="60" cy="30" rx="5" ry="2" fill="#000" />
+        <!-- kanji 御 -->
+        <text x="60" y="105" font-family="'Shippori Mincho', serif" font-size="44" font-weight="800"
+          text-anchor="middle" fill="rgba(255,255,255,0.08)">御</text>
+        <text x="60" y="105" font-family="'Shippori Mincho', serif" font-size="44" font-weight="800"
+          text-anchor="middle" fill="rgba(255,255,255,0.55)">御</text>
+        <!-- kanji 神籤 small -->
+        <text x="60" y="148" font-family="'Shippori Mincho', serif" font-size="16" font-weight="700"
+          text-anchor="middle" fill="rgba(255,255,255,0.3)">神籤</text>
+      </svg>
+    </div>
+
+    <button class="draw-btn" id="drawBtn" onclick="drawFortune()">제비 뽑기</button>
+
+    <div class="rank-bar" id="rankBar">
+      <div class="rank-dot" data-idx="0"></div>
+      <div class="rank-dot" data-idx="1"></div>
+      <div class="rank-dot" data-idx="2"></div>
+      <div class="rank-dot" data-idx="3"></div>
+      <div class="rank-dot" data-idx="4"></div>
+      <div class="rank-dot" data-idx="5"></div>
+      <div class="rank-dot" data-idx="6"></div>
+    </div>
+
+    <p class="scroll-hint" id="scrollHint">오미쿠지를 당겨보세요</p>
+  </main>
+
+  <div class="result-wrap" id="resultWrap">
+    <div class="slip-outer">
+      <div class="slip-paper" id="slipPaper">
+        <div class="rank-jp" id="rankJp">大吉</div><br>
+        <div class="rank-kr" id="rankKr">대길</div>
+        <div class="slip-divider"></div>
+        <div class="fortune-poem" id="fortunePoem"></div>
+        <div class="slip-divider"></div>
+        <div class="fortune-sections" id="fortuneSections"></div>
+      </div>
+    </div>
+
+    <div class="result-desc">
+      <div class="result-meaning" id="resultMeaning"></div>
+    </div>
+
+    <button class="again-btn" onclick="resetFortune()">다시 뽑기 · もう一度</button>
+  </div>
+
+  <footer>
+    <div class="footer-text">오미쿠지(おみくじ): 자신의 미래의 운세를 예측하는 일본의 점</div>
+  </footer>
+
+  <script>
+    const fortunes = [
+      {
+        rank: "대길", rankJp: "大吉", weight: 10, dark: false,
+        poem: "봄 꽃이 만발하듯\n모든 소원이 이루어지리라\n하늘의 뜻이 그대와 함께하노니",
+        meaning: "<strong>최고의 운세입니다.</strong>\n\n지금이 바로 행동할 때입니다. 소원은 반드시 이루어질 것이며, 모든 일이 순조롭게 흘러갑니다. 현재의 행운을 유지하기 위한 성실한 노력을 잊지 마세요.",
+        sections: [["소원", "이루어짐"], ["연애", "최길"], ["건강", "매우 좋음"], ["금전", "풍요로움"], ["학업", "대성공"]]
+      },
+      {
+        rank: "중길", rankJp: "中吉", weight: 18, dark: false,
+        poem: "강바람 부는 들판에\n씨앗이 뿌리내리듯\n결의가 있는 자에게 길이 열리리",
+        meaning: "<strong>좋은 운세입니다.</strong>\n\n큰 결의로 힘차게 나아가면 무엇이 닥쳐오든 헤쳐나갈 수 있습니다. 더 좋아질 가능성이 충분하니 안정된 마음으로 목표를 향해 나아가세요.",
+        sections: [["소원", "거의 이루어짐"], ["연애", "좋음"], ["건강", "양호"], ["금전", "안정"], ["학업", "노력하면 됨"]]
+      },
+      {
+        rank: "소길", rankJp: "小吉", weight: 16, dark: false,
+        poem: "작은 행복이 모여\n큰 기쁨이 되나니\n소소함 속에 진정한 복이 있도다",
+        meaning: "<strong>소소한 행복의 운세입니다.</strong>\n\n작은 행복을 기뻐하면 운세가 상승합니다. 꾸준히 정진하세요.",
+        sections: [["소원", "노력하면 됨"], ["연애", "천천히"], ["건강", "보통"], ["금전", "조금씩"], ["학업", "꾸준히"]]
+      },
+      {
+        rank: "길", rankJp: "吉", weight: 15, dark: false,
+        poem: "조용한 연못처럼\n마음을 가다듬으면\n길한 기운이 찾아오리라",
+        meaning: "<strong>길한 운세입니다.</strong>\n\n서두르지 말고 차분히 나아가세요. 안정된 기운이 함께하여 큰 실수 없이 목표에 다가갈 수 있습니다.",
+        sections: [["소원", "이루어질 듯"], ["연애", "안정"], ["건강", "좋음"], ["금전", "무난"], ["학업", "성실하면 OK"]]
+      },
+      {
+        rank: "말길", rankJp: "末吉", weight: 14, dark: false,
+        poem: "겨울이 지나면 봄이 오듯\n지금은 때를 기다리는 시절\n머지않아 길운이 찾아오리라",
+        meaning: "<strong>미래의 길운을 암시합니다.</strong>\n\n현재는 다소 어렵지만 포기하지 마세요. 때를 기다리며 내실을 다진다면 반드시 좋은 날이 찾아올 것입니다.",
+        sections: [["소원", "기다려야 함"], ["연애", "인내 필요"], ["건강", "주의"], ["금전", "절약"], ["학업", "기초부터"]]
+      },
+      {
+        rank: "흉", rankJp: "凶", weight: 15, dark: true,
+        poem: "흉도 마음가짐에 따라\n길로 변하나니\n뉘우치고 삼가면 운이 트이리라",
+        meaning: "<strong>조심이 필요한 운세입니다.</strong>\n\n지금은 바닥이지만 더는 내려갈 곳이 없습니다. 오히려 상승할 일만 남았습니다. 마음을 새롭게 하세요.",
+        sections: [["소원", "삼가야 함"], ["연애", "신중히"], ["건강", "조심"], ["금전", "절약 필요"], ["학업", "다시 시작"]]
+      },
+      {
+        rank: "대흉", rankJp: "大凶", weight: 12, dark: true,
+        poem: "낮은 곳에 처해 있으나\n두려워 말라, 하늘은 높고\n꿋꿋한 자에게 반드시 때가 오리라",
+        meaning: "<strong>가장 낮은 운세이나 두려워 말 것.</strong>\n\n대흉은 바닥입니다. 더 이상 나빠질 수 없다는 뜻이기도 합니다. 조용히 기회를 기다리세요.",
+        sections: [["소원", "기다릴 것"], ["연애", "지금은 NO"], ["건강", "각별 주의"], ["금전", "지출 금지"], ["학업", "준비 기간"]]
+      }
+    ];
+
+    function weightedRandom() {
+      const total = fortunes.reduce((a, b) => a + b.weight, 0);
+      let r = Math.random() * total;
+      for (const f of fortunes) { r -= f.weight; if (r <= 0) return f; }
+      return fortunes[0];
+    }
+
+    let isShaking = false, shakeCount = 0, drawn = false, revealed = false;
+    let isDragging = false, dragStartY = 0, activePointerId = null;
+
+    function shakeCanister() {
+      if (drawn) return;
+      const svg = document.getElementById('canisterSvg');
+      if (isShaking) return;
+      isShaking = true; shakeCount++;
+      svg.classList.add('shake');
+      document.getElementById('instrText').textContent = '흔들기 ' + shakeCount + '번째 · 더 흔들거나 뽑아주세요';
+      svg.addEventListener('animationend', () => {
+        svg.classList.remove('shake');
+        isShaking = false;
+      }, { once: true });
+    }
+
+    function drawFortune() {
+      if (drawn) return;
+      drawn = true;
+
+      const btn = document.getElementById('drawBtn');
+      btn.disabled = true;
+      document.getElementById('instrText').textContent = '제비가 나왔습니다...';
+
+      const svg = document.getElementById('canisterSvg');
+      const stick = document.getElementById('omikujiStick');
+
+      svg.classList.add('shake');
+
+      svg.addEventListener('animationend', () => {
+        svg.classList.remove('shake');
+
+        stick.classList.add('show');
+
+        setTimeout(() => showResult(weightedRandom()), 800);
+
+      }, { once: true });
+    }
+
+    function showResult(f) {
+      const idx = fortunes.indexOf(f);
+      document.getElementById('instrText').textContent = '제비를 뽑았습니다.';
+
+      const slip = document.getElementById('slipPaper');
+      slip.className = 'slip-paper' + (f.dark ? ' dark-slip' : '');
+
+      document.getElementById('rankJp').textContent = f.rankJp;
+      document.getElementById('rankKr').textContent = f.rank;
+      document.getElementById('fortunePoem').textContent = f.poem;
+
+      const sEl = document.getElementById('fortuneSections');
+      sEl.innerHTML = f.sections.map(([l, v]) =>
+        `<div class="fortune-section"><span class="section-label">${l}</span><span class="section-val">${v}</span></div>`
+      ).join('');
+
+      document.getElementById('resultMeaning').innerHTML = f.meaning;
+
+      document.querySelectorAll('.rank-dot').forEach((d, i) => {
+        d.classList.toggle('active', i === idx);
+      });
+
+      const wrap = document.getElementById('resultWrap');
+      const hint = document.getElementById('scrollHint');
+
+      wrap.classList.add('visible');
+      wrap.classList.remove('focused');
+
+      setTimeout(() => {
+        hint.classList.add('visible');
+      }, 300);
+    }
+
+    function resetFortune() {
+      drawn = false;
+      shakeCount = 0;
+      revealed = false;
+      isDragging = false;
+      activePointerId = null;
+
+      document.body.classList.remove('blur');
+      document.getElementById('drawBtn').disabled = false;
+
+      const wrap = document.getElementById('resultWrap');
+      const hint = document.getElementById('scrollHint');
+
+      wrap.classList.remove('visible', 'focused');
+      hint.classList.remove('visible');
+
+      document.getElementById('instrText').textContent = '마음속으로 소원을 빌며 통을 흔들어 주세요';
+      document.querySelectorAll('.rank-dot').forEach(d => d.classList.remove('active'));
+
+      const stick = document.getElementById('omikujiStick');
+      stick.classList.remove('show');
+    }
+
+    function setResultFocus(focused) {
+      const wrap = document.getElementById('resultWrap');
+      const hint = document.getElementById('scrollHint');
+
+      if (focused) {
+        wrap.classList.add('focused');
+        document.body.classList.add('blur');
+        hint.classList.remove('visible');
+        revealed = true;
+      } else {
+        wrap.classList.remove('focused');
+        document.body.classList.remove('blur');
+        hint.classList.add('visible');
+        revealed = false;
+      }
+    }
+
+    function endDrag() {
+      isDragging = false;
+      activePointerId = null;
+    }
+
+    window.addEventListener('wheel', (e) => {
+      if (!drawn) return;
+
+      if (e.deltaY < 0 && !revealed) {
+        setResultFocus(true);
+      } else if (e.deltaY > 0 && revealed) {
+        setResultFocus(false);
+      }
+    });
+
+    window.addEventListener('pointerdown', (e) => {
+      if (!drawn) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+      isDragging = true;
+      dragStartY = e.clientY;
+      activePointerId = e.pointerId;
+    }, { passive: true });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!isDragging || e.pointerId !== activePointerId) return;
+
+      const deltaY = e.clientY - dragStartY;
+      if (deltaY < -60 && !revealed) {
+        setResultFocus(true);
+        endDrag();
+      } else if (deltaY > 60 && revealed) {
+        setResultFocus(false);
+        endDrag();
+      }
+    }, { passive: true });
+
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+  </script>
+</body>
+
+</html>
